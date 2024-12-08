@@ -1,6 +1,8 @@
 package com.example.demo.di
 
 
+import android.app.Application
+import com.example.demo.ui.home.repository.NetworkRepository
 import com.example.demo.utils.Constants
 import dagger.Module
 import dagger.Provides
@@ -54,4 +56,8 @@ object NetworkModule {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
+    @Provides
+    fun provideNetworkRepository(context: Application): NetworkRepository {
+        return NetworkRepository(context)
+    }
 }

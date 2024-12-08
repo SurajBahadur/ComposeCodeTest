@@ -4,6 +4,7 @@ import com.example.demo.data.api.NetworkService
 import com.example.demo.data.local.db.AppDatabase
 import com.example.demo.ui.home.HomeViewModel
 import com.example.demo.ui.home.repository.HomeRepository
+import com.example.demo.ui.home.repository.NetworkRepository
 import com.example.demo.ui.home.uiState.UiState
 import io.mockk.coEvery
 import io.mockk.coVerify

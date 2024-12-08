@@ -31,9 +31,13 @@ fun AppNavHost(
         composable(NavigationItem.Login.route) {
             LoginScreen(navController, hiltViewModel())
         }
-        composable<HomeRoute> {
+        /*composable<HomeRoute> {
             val arguments = it.toRoute<HomeRoute>()
             HomeScreen(navController, hiltViewModel(), arguments.userName)
+        }*/
+
+        composable(NavigationItem.Home.route) {
+            HomeScreen(navController,hiltViewModel())
         }
 
         composable<MedicineDetailRoute>(

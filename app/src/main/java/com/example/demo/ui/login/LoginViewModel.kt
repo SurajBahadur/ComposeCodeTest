@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import com.example.demo.data.local.db.entity.UserEntity
 import com.example.demo.ui.home.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 /**
@@ -11,12 +13,17 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-   private val repository: HomeRepository
+    private val repository: HomeRepository
 ) : ViewModel() {
 
     fun insertUser(userName: String) {
         if (userName.isNotEmpty()) {
-            repository.insertUser(UserEntity(userName = userName))
+            repository.insertUser(
+                UserEntity(
+                    userName = userName,
+                    createdTimeStamp = System.currentTimeMillis()
+                )
+            )
         }
     }
 

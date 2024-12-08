@@ -5,8 +5,10 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.demo.data.local.db.entity.MedicineEntity
 import com.example.demo.ui.home.model.MedicineData
 import com.example.demo.ui.home.repository.HomeRepository
+import com.example.demo.ui.home.repository.NetworkRepository
 import com.example.demo.ui.home.uiState.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -22,18 +24,63 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
+    networkRepository: NetworkRepository? = null
 ) : ViewModel() {
+    val isNetworkConnected = networkRepository?.isNetworkConnected()
 
     init {
-        fetchMedicineData()
+        if (isNetworkConnected == true) {
+            fetchMedicineData()
+        } else {
+            fetchLocalDb()
+        }
+        getUserName()
     }
+
 
     private val _uiState = mutableStateOf<UiState>(UiState.InProgress)
     val uiState: MutableState<UiState>
         get() = _uiState
 
-    private val _storeData = MutableStateFlow<ArrayList<MedicineData>>(arrayListOf())
+    private val _storeData = MutableStateFlow<ArrayList<MedicineEntity>>(arrayListOf())
     val storeData = _storeData.asStateFlow()
+
+    private val _username = MutableStateFlow("")
+    val username = _username.asStateFlow()
+
+
+    private fun fetchLocalDb() {
+        viewModelScope.launch {
+            homeRepository.getMedicines().flowOn(Dispatchers.IO).catch { e ->
+                // handle exception
+                Log.e("checkData", " exception:  $e")
+            }.collect {
+                _storeData.emit(it as ArrayList<MedicineEntity>)
+                _uiState.value = UiState.StoreData
+            }
+        }
+
+    }
+
+    /**
+     * Fetch the user name from local db
+     * @return name of logged user
+     */
+    private fun getUserName() {
+        viewModelScope.launch {
+            homeRepository.getUserName().flowOn(Dispatchers.IO).catch { e ->
+                // handle exception
+                Log.e("checkData", " exception:  $e")
+            }.collect {
+                _username.emit(it.userName)
+            }
+        }
+
+    }
+
+    fun clearUserData() {
+        homeRepository.clearUserData()
+    }
 
     /**
      * Fetches Medicine items from the Mock API
@@ -51,7 +98,7 @@ class HomeViewModel @Inject constructor(
                     Log.e("checkData", " exception:  $e")
                 }
                 .collect {
-                    val arrayListData:ArrayList<MedicineData> = arrayListOf()
+                    val arrayListData: ArrayList<MedicineEntity> = arrayListOf()
                     val associatedDrugsList = mutableListOf<Map<String, String>>()
                     val root = JSONObject(it.string())
                     val problems = root.getJSONArray("problems")
@@ -191,8 +238,15 @@ class HomeViewModel @Inject constructor(
 
                     // Print the associated drugs list
                     associatedDrugsList.forEach { drug ->
-                        arrayListData.add(MedicineData(drug["name"].toString(),drug["dose"].toString(),drug["strength"].toString()))
+                        arrayListData.add(
+                            MedicineEntity(
+                                drug["name"].toString(),
+                                drug["dose"].toString(),
+                                drug["strength"].toString()
+                            )
+                        )
                     }
+                    homeRepository.insertMedicines(arrayListData)
                     _storeData.emit(arrayListData)
                     _uiState.value = UiState.StoreData
                 }

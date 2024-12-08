@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
@@ -29,8 +30,11 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.demo.data.local.db.entity.MedicineEntity
+import com.example.demo.ui.home.mapper.toMedicineData
 import com.example.demo.ui.home.model.MedicineData
 import com.example.demo.ui.home.uiState.UiState
 import com.example.myapplication.R
@@ -43,19 +47,28 @@ data class MedicineDetailRoute(
 )
 
 @Composable
-fun HomeScreen(navController: NavHostController, viewModel: HomeViewModel, userName: String) {
+fun HomeScreen(navController: NavHostController, viewModel: HomeViewModel) {
 
     val modifier = Modifier
         .fillMaxSize()
         .background(color = Color.White)
     val data by viewModel.storeData.collectAsState()
+    val loggedUserName by viewModel.username.collectAsState()
+    val isNetworkConnected = viewModel.isNetworkConnected
 
     AnimatedContent(targetState = viewModel.uiState.value, label = "", transitionSpec = {
         fadeIn(animationSpec = tween(1000)) togetherWith fadeOut(animationSpec = tween(600))
     }) {
         when (it) {
             // Specifies the mapping between a given FreeTrialUIState and a composable function.
-            UiState.StoreData -> ItemsList(data, modifier, navController, userName)
+            UiState.StoreData -> ItemsList(
+                data,
+                modifier,
+                navController,
+                loggedUserName,
+                isNetworkConnected == true
+            )
+
             UiState.InProgress -> ProgressLoader(modifier)
         }
     }
@@ -63,10 +76,11 @@ fun HomeScreen(navController: NavHostController, viewModel: HomeViewModel, userN
 
 @Composable
 fun ItemsList(
-    data: ArrayList<MedicineData>,
+    data: ArrayList<MedicineEntity>,
     modifier: Modifier,
     navController: NavHostController,
-    userName: String
+    userName: String,
+    isNetworkConnected: Boolean
 ) {
     val listState = rememberLazyListState()
 
@@ -81,7 +95,16 @@ fun ItemsList(
         }
         items(data.size) { itemIndex ->
             ItemUI(data[itemIndex]) {
-                navController.navigate(MedicineDetailRoute(data[itemIndex]))
+                navController.navigate(MedicineDetailRoute(data[itemIndex].toMedicineData()))
+            }
+        }
+        if (!isNetworkConnected) {
+            item {
+                Text(
+                    text = "This message indicates that the data displayed is unique and stored locally, without requiring an internet connection.",
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(16.dp)
+                )
             }
         }
     }
@@ -121,7 +144,7 @@ fun ProgressLoader(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ItemUI(medicineData: MedicineData, onItemClick: (MedicineData) -> Unit) {
+fun ItemUI(medicineData: MedicineEntity, onItemClick: (MedicineEntity) -> Unit) {
     Column(modifier = Modifier
         .padding(8.dp)
         .background(Color.Gray)
@@ -157,7 +180,5 @@ fun ItemUI(medicineData: MedicineData, onItemClick: (MedicineData) -> Unit) {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun FreeTrialUIPreview() {
-    ItemUI(MedicineData()) {
 
-    }
 }
